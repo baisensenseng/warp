@@ -84,6 +84,7 @@ tokio.workspace = true
 tracing.workspace = true
 trait-set = "0.3.0"
 vec1.workspace = true
+warp_i18n.workspace = true
 warp_util.workspace = true
 
 [dev-dependencies]

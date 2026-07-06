@@ -45,6 +45,7 @@ use super::warp_drive_page::WarpDriveSettingsPageView;
 use super::warpify_page::WarpifyPageView;
 use super::SettingsSection;
 use crate::appearance::Appearance;
+use crate::localization::t;
 use crate::settings::CloudPreferencesSettings;
 use crate::themes::theme::Fill;
 use crate::ui_components::blended_colors;
@@ -167,10 +168,12 @@ impl SettingsPage {
 
     pub fn render_page_button(
         &self,
+        app: &AppContext,
         appearance: &Appearance,
         match_data: MatchData,
         clicked: bool,
     ) -> Hoverable {
+        let label = t(app, self.section.localization_key()) + &match_data.to_string();
         appearance
             .ui_builder()
             .button(
@@ -181,7 +184,7 @@ impl SettingsPage {
                 },
                 self.button_state_handle.clone(),
             )
-            .with_text_label(self.section.to_string() + &match_data.to_string())
+            .with_text_label(label)
             .with_style(
                 UiComponentStyles::default()
                     .set_border_width(0.)
@@ -536,7 +539,7 @@ impl LocalOnlyIconState {
                     .clone();
                 Self::Visible {
                     mouse_state,
-                    custom_tooltip: None,
+                    custom_tooltip: Some(t(app, "settings-local-only-tooltip")),
                 }
             }
             _ => Self::Hidden,
@@ -608,7 +611,8 @@ pub fn render_local_only_icon(
         .ui_builder()
         .local_only_icon_with_tooltip(
             13.,
-            custom_tooltip.unwrap_or("This setting is not synced to your other devices".to_owned()),
+            custom_tooltip
+                .unwrap_or_else(|| "This setting is not synced to your other devices".to_owned()),
             mouse_state.clone(),
         )
         .finish();
@@ -769,6 +773,68 @@ pub fn render_page_title(text: &str, size: f32, appearance: &Appearance) -> Box<
     )
     .with_margin_bottom(PAGE_TITLE_MARGIN_BOTTOM)
     .finish()
+}
+
+/// Returns localized text for static settings section and category labels.
+///
+/// # Parameters
+/// - `app`: Application context used to resolve Fluent text.
+/// - `text`: Static English identifier used by settings page metadata.
+///
+/// # Returns
+/// Localized text when a mapping exists, otherwise the original text.
+fn localized_settings_static_text(app: &AppContext, text: &'static str) -> String {
+    let key = match text {
+        "About" => "settings-section-about",
+        "Account" => "settings-section-account",
+        "MCP Servers" => "settings-section-mcp-servers",
+        "Billing and usage" => "settings-section-billing-and-usage",
+        "Appearance" => "settings-section-appearance",
+        "Features" => "settings-section-features",
+        "Keyboard shortcuts" => "settings-section-keybindings",
+        "Privacy" => "settings-section-privacy",
+        "Referrals" => "settings-section-referrals",
+        "Scripting" => "settings-section-scripting",
+        "Shared blocks" => "settings-section-shared-blocks",
+        "Teams" => "settings-section-teams",
+        "Warp Drive" => "settings-section-warp-drive",
+        "Warpify" => "settings-section-warpify",
+        "Agents" => "settings-section-agents",
+        "Warp Agent" => "settings-section-warp-agent",
+        "Profiles" => "settings-section-agent-profiles",
+        "MCP servers" => "settings-section-agent-mcp-servers",
+        "Knowledge" => "settings-section-knowledge",
+        "Third party CLI agents" => "settings-section-third-party-cli-agents",
+        "Code" => "settings-section-code",
+        "Indexing and projects" => "settings-section-code-indexing",
+        "Editor and Code Review" => "settings-section-editor-and-code-review",
+        "Cloud platform" => "settings-section-cloud-platform",
+        "Environments" => "settings-section-cloud-environments",
+        "Oz Cloud API Keys" => "settings-section-oz-cloud-api-keys",
+        "Interface" => "settings-category-interface",
+        "Themes" => "settings-category-themes",
+        "Icon" => "settings-category-icon",
+        "Window" => "settings-category-window",
+        "Input" => "settings-category-input",
+        "Panes" => "settings-category-panes",
+        "Blocks" => "settings-category-blocks",
+        "Text" => "settings-category-text",
+        "Cursor" => "settings-category-cursor",
+        "Tabs" => "settings-category-tabs",
+        "Full-screen Apps" => "settings-category-full-screen-apps",
+        "General" => "settings-category-general",
+        "Session" => "settings-category-session",
+        "Keys" => "settings-category-keys",
+        "Text Editing" => "settings-category-text-editing",
+        "Terminal Input" => "settings-category-terminal-input",
+        "Terminal" => "settings-category-terminal",
+        "Notifications" => "settings-category-notifications",
+        "Workflows" => "settings-category-workflows",
+        "System" => "settings-category-system",
+        _ => return text.to_owned(),
+    };
+
+    t(app, key)
 }
 
 /// Renders a toggle with a label on the left and a toggle on the right,
@@ -1629,8 +1695,9 @@ impl<V: warpui::View> PageType<V> {
                 if let Some(widget) = widget {
                     if widget.should_render(app) {
                         if let Some(title) = title {
+                            let title = localized_settings_static_text(app, title);
                             let col = Flex::column()
-                                .with_child(render_page_title(title, HEADER_FONT_SIZE, appearance))
+                                .with_child(render_page_title(&title, HEADER_FONT_SIZE, appearance))
                                 .with_child(widget.render_widget(view, false, appearance, app));
                             page = col.finish();
                         } else {
@@ -1648,7 +1715,8 @@ impl<V: warpui::View> PageType<V> {
             } => {
                 let mut page = Flex::column();
                 if let Some(title) = title {
-                    page.add_child(render_page_title(title, HEADER_FONT_SIZE, appearance));
+                    let title = localized_settings_static_text(app, title);
+                    page.add_child(render_page_title(&title, HEADER_FONT_SIZE, appearance));
                 }
                 for widget in widgets {
                     let highlighted =
@@ -1667,19 +1735,21 @@ impl<V: warpui::View> PageType<V> {
             } => {
                 let mut page = Flex::column();
                 if let Some(title) = title {
-                    page.add_child(render_page_title(title, HEADER_FONT_SIZE, appearance));
+                    let title = localized_settings_static_text(app, title);
+                    page.add_child(render_page_title(&title, HEADER_FONT_SIZE, appearance));
                 }
                 let num_categories = categories.len();
                 for (i, category) in categories.into_iter().enumerate() {
                     if !category.title.is_empty() {
+                        let category_title = localized_settings_static_text(app, category.title);
                         if let Some(subtitle) = category.subtitle {
                             page.add_child(render_sub_header_with_description(
                                 appearance,
-                                category.title,
+                                category_title,
                                 subtitle,
                             ));
                         } else {
-                            page.add_child(render_sub_header(appearance, category.title, None));
+                            page.add_child(render_sub_header(appearance, category_title, None));
                         }
                     }
                     for widget in &category.widgets {
@@ -1903,6 +1973,7 @@ pub(super) trait SettingsWidget {
 /// Callers should add an `on_click` handler and add the button to the UI below
 /// the setting.
 pub(super) fn build_reset_button(
+    app: &AppContext,
     appearance: &Appearance,
     mouse_state: MouseStateHandle,
     changed_from_default: bool,
@@ -1921,5 +1992,5 @@ pub(super) fn build_reset_button(
             font_size: Some(appearance.ui_font_size() * 0.8),
             ..Default::default()
         })
-        .with_text_label("Reset to default".to_owned())
+        .with_text_label(t(app, "common-reset-to-default"))
 }

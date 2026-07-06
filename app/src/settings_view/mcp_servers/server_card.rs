@@ -23,6 +23,7 @@ use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 use crate::ai::mcp::{MCPServerState, TemplatableMCPServerManager};
 use crate::appearance::Appearance;
 use crate::cloud_object::{CloudObject, CloudObjectUuidLookup as _};
+use crate::localization::t_args;
 use crate::settings_view::mcp_servers::{style, ServerCardItemId};
 use crate::ui_components::avatar::{Avatar, AvatarContent, StatusElementTypes};
 use crate::ui_components::blended_colors;
@@ -473,6 +474,7 @@ impl ServerCardView {
         &self,
         tools: &[String],
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let text_color =
             blended_colors::text_sub(appearance.theme(), appearance.theme().background());
@@ -501,7 +503,11 @@ impl ServerCardView {
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
                 .with_child(
                     Text::new(
-                        format!("{} tools available", tools.len()),
+                        t_args(
+                            app,
+                            "settings-mcp-tools-available",
+                            &[("count", tools.len().to_string())],
+                        ),
                         appearance.ui_font_family(),
                         appearance.ui_font_size(),
                     )
@@ -1028,7 +1034,7 @@ impl View for ServerCardView {
             info_column = self.add_subtitle_lines(info_column, appearance, app);
 
             if let Some(tools) = &self.tools {
-                let tools_info_row = self.render_tools_expandable(tools, appearance);
+                let tools_info_row = self.render_tools_expandable(tools, appearance, app);
                 info_column = info_column.with_child(tools_info_row)
             }
 

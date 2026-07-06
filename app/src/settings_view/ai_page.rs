@@ -85,6 +85,7 @@ use crate::editor::{
     EditorOptions, InteractionState, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextColors,
 };
+use crate::localization::t_args;
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::settings::{
     AIAutoDetectionEnabled, AICommandDenylist, AISettingsChangedEvent,
@@ -5023,7 +5024,11 @@ impl SettingsWidget for UsageWidget {
                 .with_child(
                     appearance
                         .ui_builder()
-                        .paragraph(format!("Resets {formatted_next_refresh_time}"))
+                        .paragraph(t_args(
+                            app,
+                            "settings-ai-usage-resets",
+                            &[("date", formatted_next_refresh_time)],
+                        ))
                         .with_style(UiComponentStyles {
                             font_color: Some(blended_colors::text_sub(
                                 appearance.theme(),
@@ -5039,9 +5044,16 @@ impl SettingsWidget for UsageWidget {
         .with_padding_bottom(HEADER_PADDING)
         .finish();
 
-        let request_limit_description = format!(
-            "This is the {} limit of AI credits for your account.",
-            ai_request_usage_model.refresh_duration_to_string()
+        let request_limit_description = t_args(
+            app,
+            "settings-ai-credit-limit-description",
+            &[(
+                "duration",
+                warp_i18n::translate_ui_literal(
+                    ai_request_usage_model.refresh_duration_to_string(),
+                )
+                .into_owned(),
+            )],
         );
 
         let request_usage_row = self.render_ai_usage_limit_row(
@@ -8616,9 +8628,13 @@ impl ApiKeysWidget {
 
         if let Some(tokens) = grok_tokens {
             let connected_text = match tokens.connected_at.map(DateTime::<Local>::from) {
-                Some(connected_at) => format!(
-                    "Connected on {}.",
-                    connected_at.format("%m/%d/%Y at %-I:%M%P")
+                Some(connected_at) => t_args(
+                    app,
+                    "settings-ai-connected-on",
+                    &[(
+                        "datetime",
+                        connected_at.format("%m/%d/%Y at %-I:%M%P").to_string(),
+                    )],
                 ),
                 // Tokens stored before the connection time was tracked.
                 None => "Connected.".to_string(),

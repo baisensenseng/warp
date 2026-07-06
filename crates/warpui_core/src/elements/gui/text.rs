@@ -8,6 +8,7 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::util::EPSILON;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use string_offset::CharOffset;
+use warp_i18n::translate_ui_literal;
 
 use super::{
     AfterLayoutContext, AppContext, Axis, ClickableCharRange, Element, EventContext, Fill,
@@ -270,7 +271,7 @@ impl Text {
     #[cfg_attr(debug_assertions, track_caller)]
     pub fn new(text: impl Into<Cow<'static, str>>, family_id: FamilyId, font_size: f32) -> Self {
         Self {
-            text: text.into(),
+            text: translate_ui_literal(text),
             soft_wrap: true,
             family_id,
             font_properties: Properties::default(),

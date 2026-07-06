@@ -46,6 +46,7 @@ use crate::drive::CloudObjectTypeAndId;
 use crate::editor::{
     EditorView, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
+use crate::localization::t_args;
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::pane_group::Direction;
 use crate::search_bar::SearchBar;
@@ -1274,8 +1275,12 @@ impl MCPServersListPageView {
                         .current_team()
                         .map(|team| team.name.clone());
                     let shared_by_text = match team_name {
-                        Some(name) => format!("Shared by Warp and {name}"),
-                        None => "Shared by Warp and from other devices".to_string(),
+                        Some(name) => t_args(
+                            app,
+                            "settings-mcp-shared-by-warp-and-team",
+                            &[("team", name)],
+                        ),
+                        None => t_args(app, "settings-mcp-shared-by-warp-and-other-devices", &[]),
                     };
 
                     page.add_child(self.render_server_cards_section(
@@ -1295,7 +1300,11 @@ impl MCPServersListPageView {
 
                 // Render one section per provider (e.g. "Detected from Claude").
                 for (provider, cards) in &filtered_file_based_cards {
-                    let section_title = format!("Detected from {}", provider.display_name());
+                    let section_title = t_args(
+                        app,
+                        "settings-mcp-detected-from-provider",
+                        &[("provider", provider.display_name().to_string())],
+                    );
                     page.add_child(self.render_server_cards_section(
                         &section_title,
                         cards,
@@ -1766,7 +1775,11 @@ impl MCPServersListPageView {
 
                 if is_shared {
                     match creator {
-                        Some(creator) => Some(TitleChip::text(format!("Shared by: {creator}"))),
+                        Some(creator) => Some(TitleChip::text(t_args(
+                            ctx,
+                            "settings-mcp-shared-by-creator",
+                            &[("creator", creator)],
+                        ))),
                         None => Some(TitleChip::text("Shared by a team member")),
                     }
                 } else if matches!(item_id, ServerCardItemId::TemplatableMCP(_)) {

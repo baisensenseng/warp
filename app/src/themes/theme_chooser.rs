@@ -1,6 +1,7 @@
 use pathfinder_color::ColorU;
 use settings::Setting as _;
 use warp_editor::editor::NavigationKey;
+use warp_i18n::translate_ui_literal;
 use warpui::accessibility::{AccessibilityContent, WarpA11yRole};
 use warpui::elements::{
     Align, ChildAnchor, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
@@ -115,13 +116,15 @@ impl ThemeChooserMode {
         let hint_text = match self {
             ThemeChooserMode::SystemAgnostic => appearance
                 .ui_builder()
-                .paragraph("Change your current theme.".to_string()),
-            ThemeChooserMode::SystemLight => appearance
-                .ui_builder()
-                .paragraph("Pick a theme for when your system is in light mode.".to_string()),
-            ThemeChooserMode::SystemDark => appearance
-                .ui_builder()
-                .paragraph("Pick a theme for when your system is in dark mode.".to_string()),
+                .paragraph(translate_ui_literal("Change your current theme.").into_owned()),
+            ThemeChooserMode::SystemLight => appearance.ui_builder().paragraph(
+                translate_ui_literal("Pick a theme for when your system is in light mode.")
+                    .into_owned(),
+            ),
+            ThemeChooserMode::SystemDark => appearance.ui_builder().paragraph(
+                translate_ui_literal("Pick a theme for when your system is in dark mode.")
+                    .into_owned(),
+            ),
         };
         hint_text
             .build()

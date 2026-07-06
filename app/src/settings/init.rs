@@ -3,6 +3,7 @@ use std::path::Path;
 use settings::{Setting as _, SettingsManager};
 use warp_core::features::FeatureFlag;
 use warp_core::semantic_selection::SemanticSelection;
+use warp_i18n::Language;
 use warpui::rendering::GPUPowerPreference;
 use warpui::{AppContext, SingletonEntity};
 use warpui_extras::user_preferences;
@@ -16,9 +17,9 @@ use super::{
     AISettings, AccessibilitySettings, AliasExpansionSettings, AppEditorSettings,
     BlockVisibilitySettings, ChangelogSettings, CodeSettings, DebugSettings, EmacsBindingsSettings,
     FontSettings, FontSettingsChangedEvent, GPUSettings, InputBoxType, InputModeSettings,
-    InputSettings, LocalControlSettings, PaneSettings, SameLinePromptBlockSettings, ScrollSettings,
-    SelectionSettings, SshSettings, ThemeSettings, TuiAutoupdateSettings, VimBannerSettings,
-    WarpDrivePrivacySettings,
+    InputSettings, LanguageSettings, LocalControlSettings, PaneSettings,
+    SameLinePromptBlockSettings, ScrollSettings, SelectionSettings, SshSettings, ThemeSettings,
+    TuiAutoupdateSettings, VimBannerSettings, WarpDrivePrivacySettings,
 };
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::banner::BannerState;
@@ -77,6 +78,7 @@ pub fn register_all_settings(ctx: &mut AppContext) {
     ScrollSettings::register(ctx);
     SelectionSettings::register(ctx);
     InputModeSettings::register(ctx);
+    LanguageSettings::register(ctx);
     ThemeSettings::register(ctx);
     TuiAutoupdateSettings::register(ctx);
     AccessibilitySettings::register(ctx);
@@ -128,6 +130,8 @@ pub fn init(
     if needs_settings_file_migration(ctx) {
         migrate_native_settings_to_settings_file(ctx);
     }
+
+    apply_detected_language_if_unset(ctx);
 
     let use_thin_strokes = *FontSettings::as_ref(ctx).use_thin_strokes;
 
@@ -236,6 +240,31 @@ pub fn init(
     }
 
     user_defaults_on_startup
+}
+
+/// Applies the operating system display language when the user has not chosen one.
+///
+/// # Parameters
+/// - `ctx`: App context used to read and update the language setting.
+///
+/// # Returns
+/// Nothing.
+fn apply_detected_language_if_unset(ctx: &mut AppContext) {
+    if LanguageSettings::as_ref(ctx)
+        .app_language
+        .is_value_explicitly_set()
+    {
+        return;
+    }
+
+    let language = Language::detect_system();
+    LanguageSettings::handle(ctx).update(ctx, |language_settings, ctx| {
+        if !language_settings.app_language.is_value_explicitly_set() {
+            report_if_error!(language_settings
+                .app_language
+                .load_value(language, false, ctx));
+        }
+    });
 }
 
 /// Handles a `WarpConfig` change event, reloading settings from disk when

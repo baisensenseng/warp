@@ -18,6 +18,7 @@ mod init;
 pub mod initializer;
 mod input;
 mod input_mode;
+mod language;
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 mod linux;
 mod local_control;
@@ -54,6 +55,7 @@ pub use gpu::*;
 pub use init::*;
 pub use input::*;
 pub use input_mode::*;
+pub use language::*;
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 pub use linux::*;
 pub use local_control::*;
@@ -69,6 +71,8 @@ pub use theme::*;
 pub use tui_autoupdate::*;
 pub use vim_banner::*;
 use warp_core::user_preferences::GetUserPreferences as _;
+
+use crate::localization::{t, t_args};
 
 /// Describes errors encountered when loading settings from `settings.toml`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,6 +117,58 @@ impl SettingsFileError {
                 _ => (
                     "Your settings file contains errors.".to_owned(),
                     format!("{self}. Default values are being used."),
+                ),
+            },
+        }
+    }
+
+    /// Returns the localized user-facing `(heading, description)` pair used to present this error.
+    ///
+    /// # Parameters
+    /// - `app`: Application context used to resolve the current display language.
+    ///
+    /// # Returns
+    /// A tuple containing the localized heading and description text.
+    pub fn heading_and_description_localized(&self, app: &warpui::AppContext) -> (String, String) {
+        let error = self.localized_message(app);
+        match self {
+            Self::FileParseFailed(_) => (
+                t(app, "settings-file-error-heading"),
+                t_args(app, "settings-file-error-open-file", &[("error", error)]),
+            ),
+            Self::InvalidSettings(keys) => match keys.len() {
+                1 => (
+                    t(app, "settings-file-error-heading"),
+                    t_args(app, "settings-file-error-default-one", &[("error", error)]),
+                ),
+                _ => (
+                    t(app, "settings-file-errors-heading"),
+                    t_args(app, "settings-file-error-default-many", &[("error", error)]),
+                ),
+            },
+        }
+    }
+
+    /// Returns the localized single-line message for this settings file error.
+    ///
+    /// # Parameters
+    /// - `app`: Application context used to resolve the current display language.
+    ///
+    /// # Returns
+    /// A localized sentence describing the parse or validation problem.
+    pub fn localized_message(&self, app: &warpui::AppContext) -> String {
+        match self {
+            Self::FileParseFailed(_) => t(app, "settings-file-error-parse"),
+            Self::InvalidSettings(keys) => match keys.as_slice() {
+                [key] => t_args(
+                    app,
+                    "settings-file-error-invalid-one",
+                    &[("key", key.clone())],
+                ),
+                _ => t_args(
+                    app,
+                    "settings-file-error-invalid-many",
+                    &[("keys", keys.join(", "))],
                 ),
             },
         }

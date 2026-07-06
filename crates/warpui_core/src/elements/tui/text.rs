@@ -22,6 +22,7 @@
 //! string occupies no rows.
 
 use ratatui::widgets::{Paragraph, Widget, Wrap};
+use warp_i18n::translate_ui_literal;
 
 use super::{TuiBuffer, TuiConstraint, TuiElement, TuiLayoutContext, TuiRect, TuiSize, TuiStyle};
 use crate::AppContext;
@@ -36,7 +37,7 @@ impl TuiText {
     /// A wrapping text element holding `text` with default styling.
     pub fn new(text: impl Into<String>) -> Self {
         Self {
-            text: text.into(),
+            text: translate_ui_literal(std::borrow::Cow::Owned(text.into())).into_owned(),
             style: TuiStyle::default(),
             wrap: true,
         }

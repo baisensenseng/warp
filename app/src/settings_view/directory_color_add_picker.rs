@@ -17,6 +17,8 @@ use warpui::{
 
 use crate::ai::persisted_workspace::{PersistedWorkspace, PersistedWorkspaceEvent};
 use crate::appearance::Appearance;
+use crate::localization::t;
+use crate::settings::LanguageSettings;
 use crate::ui_components::icons;
 use crate::view_components::action_button::{ActionButton, SecondaryTheme};
 use crate::view_components::{DropdownItem, FilterableDropdown};
@@ -25,8 +27,6 @@ use crate::workspace::tab_settings::{
     TabSettingsChangedEvent,
 };
 
-const ADD_DIRECTORY_LABEL: &str = "+ Add directory…";
-const BUTTON_LABEL: &str = "Add directory color";
 const MENU_WIDTH: f32 = 340.;
 
 /// A dropdown used by the Directory tab colors settings widget, with a button fallback
@@ -108,19 +108,26 @@ impl DirectoryColorAddPicker {
             }
         });
 
-        let button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new(BUTTON_LABEL, SecondaryTheme)
-                .with_icon(icons::Icon::Plus)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(DirectoryColorAddPickerAction::AddNewDirectory);
-                })
+        ctx.subscribe_to_model(&LanguageSettings::handle(ctx), |me, _, _, ctx| {
+            me.update_localized_labels(ctx);
+        });
+
+        let button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(
+                t(ctx, "settings-appearance-add-directory-color"),
+                SecondaryTheme,
+            )
+            .with_icon(icons::Icon::Plus)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(DirectoryColorAddPickerAction::AddNewDirectory);
+            })
         });
 
         let dropdown = ctx.add_typed_action_view(|ctx| {
             let mut dropdown = FilterableDropdown::new(ctx);
             dropdown.set_top_bar_max_width(MENU_WIDTH);
             dropdown.set_menu_width(MENU_WIDTH, ctx);
-            dropdown.set_menu_header_to_static(BUTTON_LABEL);
+            dropdown.set_menu_header_to_static(t(ctx, "settings-appearance-add-directory-color"));
             dropdown
         });
 
@@ -157,7 +164,7 @@ impl DirectoryColorAddPicker {
                                     .with_cross_axis_alignment(CrossAxisAlignment::Center)
                                     .with_child(
                                         Text::new_inline(
-                                            ADD_DIRECTORY_LABEL,
+                                            t(app, "settings-appearance-add-directory"),
                                             font_family,
                                             font_size,
                                         )
@@ -187,6 +194,26 @@ impl DirectoryColorAddPicker {
 
         picker.refresh_items(ctx);
         picker
+    }
+
+    /// Updates localized labels cached in child views.
+    ///
+    /// # Parameters
+    /// - `ctx`: View context used to update the child button and dropdown.
+    ///
+    /// # Returns
+    /// Nothing.
+    fn update_localized_labels(&mut self, ctx: &mut ViewContext<Self>) {
+        let button_label = t(ctx, "settings-appearance-add-directory-color");
+        self.button.update(ctx, |button, ctx| {
+            button.set_label(button_label, ctx);
+        });
+
+        let dropdown_label = t(ctx, "settings-appearance-add-directory-color");
+        self.dropdown.update(ctx, |dropdown, ctx| {
+            dropdown.set_menu_header_to_static(dropdown_label);
+            ctx.notify();
+        });
     }
 
     fn refresh_items(&mut self, ctx: &mut ViewContext<Self>) {

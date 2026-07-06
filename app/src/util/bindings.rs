@@ -8,6 +8,7 @@ use fuzzy_match::match_indices_case_insensitive;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
+use warp_i18n::translate_ui_literal;
 use warpui::actions::StandardAction;
 use warpui::keymap::{
     BindingDescription, BindingId, BindingLens, CustomTag, DescriptionContext, EditableBindingLens,
@@ -647,24 +648,33 @@ pub fn filter_bindings_including_keystroke<'a>(
                     None
                 };
 
-                let fuzzy_search_result = match_indices_case_insensitive(
-                    binding.description.in_context(description_for),
-                    search_term,
-                );
+                let description = binding.description.in_context(description_for);
+                let translated_description = translate_ui_literal(description.to_owned());
+                let fuzzy_search_score = match_indices_case_insensitive(description, search_term)
+                    .map(|result| result.score)
+                    .into_iter()
+                    .chain(
+                        match_indices_case_insensitive(
+                            translated_description.as_ref(),
+                            search_term,
+                        )
+                        .map(|result| result.score),
+                    )
+                    .max();
 
-                match (keystroke_search_score, fuzzy_search_result) {
+                match (keystroke_search_score, fuzzy_search_score) {
                     // If keystroke matched, don't include fuzzy search highlights.
-                    (Some(keystroke_score), Some(fuzzy_search_result)) => Some((
+                    (Some(keystroke_score), Some(fuzzy_search_score)) => Some((
                         SearchScore {
                             keystroke_score: Some(keystroke_score),
-                            fuzzy_search_score: fuzzy_search_result.score,
+                            fuzzy_search_score,
                         },
                         None,
                         binding,
                     )),
-                    (None, Some(fuzzy_search_result)) => Some((
+                    (None, Some(fuzzy_search_score)) => Some((
                         SearchScore {
-                            fuzzy_search_score: fuzzy_search_result.score,
+                            fuzzy_search_score,
                             ..Default::default()
                         },
                         None,

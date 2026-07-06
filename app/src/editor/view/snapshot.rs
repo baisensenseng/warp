@@ -13,6 +13,7 @@ use pathfinder_geometry::vector::{vec2f, Vector2F};
 use rayon::prelude::*;
 use string_offset::ByteOffset;
 use warp_completer::completer::Description;
+use warp_i18n::translate_ui_literal;
 use warpui::fonts::{Cache as FontCache, FamilyId, Properties};
 use warpui::platform::LineStyle;
 use warpui::text::point::Point;
@@ -157,7 +158,7 @@ impl ViewSnapshot {
         self.placeholder_texts
             .iter()
             .find(|(prefix, _)| buffer_text == prefix.as_str())
-            .map(|(_, text)| text.clone())
+            .map(|(_, text)| translate_ui_literal(text.clone()).into_owned())
     }
 
     pub fn placeholder_text_exists(&self) -> bool {

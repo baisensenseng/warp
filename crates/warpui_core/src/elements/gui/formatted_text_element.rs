@@ -12,6 +12,7 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use string_offset::{ByteOffset, CharOffset};
 use vec1::vec1;
+use warp_i18n::{current_ui_language, translate_ui_literal, Language};
 
 use super::{Highlight, ListNumbering, Selection};
 use crate::elements::{
@@ -169,6 +170,65 @@ pub struct FormattedTextElement {
 }
 
 impl FormattedTextElement {
+    /// Localizes user-interface fragments inside formatted text while preserving code content.
+    ///
+    /// # Parameters
+    /// - `formatted_text`: Formatted text constructed from built-in UI copy.
+    ///
+    /// # Returns
+    /// Formatted text with translatable fragments localized for the active UI language.
+    fn localize_formatted_text(mut formatted_text: FormattedText) -> FormattedText {
+        if current_ui_language() == Language::English {
+            return formatted_text;
+        }
+
+        for line in &mut formatted_text.lines {
+            Self::localize_formatted_text_line(line);
+        }
+        formatted_text
+    }
+
+    /// Localizes inline fragments for one formatted text line.
+    ///
+    /// # Parameters
+    /// - `line`: Formatted text line whose UI fragments should be translated.
+    ///
+    /// # Returns
+    /// Nothing.
+    fn localize_formatted_text_line(line: &mut FormattedTextLine) {
+        match line {
+            FormattedTextLine::Heading(header) => Self::localize_fragments(&mut header.text),
+            FormattedTextLine::Line(fragments) => Self::localize_fragments(fragments),
+            FormattedTextLine::OrderedList(list) => {
+                Self::localize_fragments(&mut list.indented_text.text)
+            }
+            FormattedTextLine::UnorderedList(list) => Self::localize_fragments(&mut list.text),
+            FormattedTextLine::TaskList(list) => Self::localize_fragments(&mut list.text),
+            FormattedTextLine::CodeBlock(_)
+            | FormattedTextLine::LineBreak
+            | FormattedTextLine::HorizontalRule
+            | FormattedTextLine::Embedded(_)
+            | FormattedTextLine::Image(_)
+            | FormattedTextLine::Table(_) => {}
+        }
+    }
+
+    /// Localizes plain, emphasized, and hyperlink label fragments.
+    ///
+    /// # Parameters
+    /// - `fragments`: Inline formatted fragments to update in place.
+    ///
+    /// # Returns
+    /// Nothing.
+    fn localize_fragments(fragments: &mut [FormattedTextFragment]) {
+        for fragment in fragments {
+            if !fragment.styles.inline_code {
+                fragment.text =
+                    translate_ui_literal(std::mem::take(&mut fragment.text)).into_owned();
+            }
+        }
+    }
+
     #[cfg_attr(debug_assertions, track_caller)]
     fn internal_constructor(
         formatted_text: Arc<FormattedText>,
@@ -232,13 +292,17 @@ impl FormattedTextElement {
     /// so callers that have a cached Arc can avoid an extra deep clone.
     #[cfg_attr(debug_assertions, track_caller)]
     pub fn new_arc(
-        formatted_text: Arc<FormattedText>,
+        mut formatted_text: Arc<FormattedText>,
         font_size: f32,
         family_id: FamilyId,
         code_block_family_id: FamilyId,
         text_color: ColorU,
         highlight_index: HighlightedHyperlink,
     ) -> Self {
+        if current_ui_language() != Language::English {
+            formatted_text = Arc::new(Self::localize_formatted_text((*formatted_text).clone()));
+        }
+
         Self::internal_constructor(
             formatted_text,
             font_size,
@@ -264,9 +328,10 @@ impl FormattedTextElement {
         family_id: FamilyId,
         font_size: f32,
     ) -> Self {
+        let text = translate_ui_literal(text.into()).into_owned();
         Self::internal_constructor(
             Arc::new(FormattedText::new([FormattedTextLine::Line(vec![
-                FormattedTextFragment::plain_text(text.into()),
+                FormattedTextFragment::plain_text(text),
             ])])),
             font_size,
             family_id,

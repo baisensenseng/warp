@@ -229,6 +229,7 @@ use crate::input_suggestions::{
     Event as InputSuggestionsEvent, HistoryInputSuggestion, InputSuggestions,
     TabCompletionsPreselectOption,
 };
+use crate::localization::{Localization, LocalizationEvent};
 use crate::network::NetworkStatus;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::PaneGroupAction;
@@ -3316,6 +3317,13 @@ impl Input {
         ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, event, ctx| {
             me.handle_ai_settings_changed_event(event, ctx)
         });
+
+        ctx.subscribe_to_model(
+            &Localization::handle(ctx),
+            |me, _, event, ctx| match event {
+                LocalizationEvent::LanguageChanged => me.set_zero_state_hint_text(ctx),
+            },
+        );
 
         ctx.subscribe_to_model(
             &IgnoredSuggestionsModel::handle(ctx),
@@ -6753,7 +6761,7 @@ impl Input {
                 if let Some(hint_text) = command
                     .argument
                     .as_ref()
-                    .and_then(|argument| argument.hint_text)
+                    .and_then(|argument| argument.localized_hint_text(command.name, ctx))
                 {
                     editor.set_placeholder_text_with_prefix(
                         format!("{} ", command.name),

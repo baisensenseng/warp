@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use pathfinder_geometry::vector::vec2f;
+use warp_i18n::translate_ui_literal;
 
 use crate::elements::{
     Align, Border, ChildAnchor, ConstrainedBox, Container, CrossAxisAlignment, Element, Empty,
@@ -191,12 +192,12 @@ impl Button {
     }
 
     pub fn with_text_label(mut self, label: String) -> Self {
-        self.label = ButtonLabel::Text(label);
+        self.label = ButtonLabel::Text(translate_ui_literal(label).into_owned());
         self
     }
 
     pub fn with_centered_text_label(mut self, label: String) -> Self {
-        self.label = ButtonLabel::CenteredText(label);
+        self.label = ButtonLabel::CenteredText(translate_ui_literal(label).into_owned());
         self
     }
 

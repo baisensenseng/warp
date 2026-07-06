@@ -56,13 +56,14 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextColors, TextOptions,
 };
+use crate::localization::t;
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::view;
 use crate::pane_group::{BackingView, Direction, PaneConfiguration, PaneEvent, SplitPaneState};
 use crate::server::server_api::ServerApiProvider;
 use crate::server::telemetry::MCPServerCollectionPaneEntrypoint;
-use crate::settings::{AISettings, BlockVisibilitySettings, SettingsFileError};
+use crate::settings::{AISettings, BlockVisibilitySettings, LanguageSettings, SettingsFileError};
 use crate::settings_view::mcp_servers_page::{MCPServersSettingsPage, MCPServersSettingsPageEvent};
 use crate::terminal::model::blockgrid::BlockGrid;
 use crate::terminal::SizeInfo;
@@ -170,11 +171,11 @@ pub(super) fn editor_text_colors(appearance: &Appearance) -> TextColors {
 
 /// Small inline pill rendered next to a settings label to mark a feature as beta.
 /// Used for experimental features (i.e. AsyncFind) that are enabled for Friends of Warp (i.e. Dogfood/Preview) and toggleable by others.
-pub(super) fn render_beta_chip(appearance: &Appearance) -> Box<dyn Element> {
+pub(super) fn render_beta_chip(appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
     let theme = appearance.theme();
     let chip_color = theme.sub_text_color(theme.surface_3()).into_solid();
     Container::new(
-        Text::new_inline("BETA", appearance.ui_font_family(), 10.)
+        Text::new_inline(t(app, "settings-beta"), appearance.ui_font_family(), 10.)
             .with_color(chip_color)
             .finish(),
     )
@@ -311,6 +312,36 @@ impl Display for SettingsSection {
 }
 
 impl SettingsSection {
+    pub fn localization_key(&self) -> &'static str {
+        match self {
+            SettingsSection::About => "settings-section-about",
+            SettingsSection::Account => "settings-section-account",
+            SettingsSection::MCPServers => "settings-section-mcp-servers",
+            SettingsSection::BillingAndUsage => "settings-section-billing-and-usage",
+            SettingsSection::Appearance => "settings-section-appearance",
+            SettingsSection::Features => "settings-section-features",
+            SettingsSection::Keybindings => "settings-section-keybindings",
+            SettingsSection::Privacy => "settings-section-privacy",
+            SettingsSection::Referrals => "settings-section-referrals",
+            SettingsSection::Scripting => "settings-section-scripting",
+            SettingsSection::SharedBlocks => "settings-section-shared-blocks",
+            SettingsSection::Teams => "settings-section-teams",
+            SettingsSection::WarpDrive => "settings-section-warp-drive",
+            SettingsSection::Warpify => "settings-section-warpify",
+            SettingsSection::AI => "settings-section-agents",
+            SettingsSection::WarpAgent => "settings-section-warp-agent",
+            SettingsSection::AgentProfiles => "settings-section-agent-profiles",
+            SettingsSection::AgentMCPServers => "settings-section-agent-mcp-servers",
+            SettingsSection::Knowledge => "settings-section-knowledge",
+            SettingsSection::ThirdPartyCLIAgents => "settings-section-third-party-cli-agents",
+            SettingsSection::Code => "settings-section-code",
+            SettingsSection::CodeIndexing => "settings-section-code-indexing",
+            SettingsSection::EditorAndCodeReview => "settings-section-editor-and-code-review",
+            SettingsSection::CloudEnvironments => "settings-section-cloud-environments",
+            SettingsSection::OzCloudAPIKeys => "settings-section-oz-cloud-api-keys",
+        }
+    }
+
     /// Returns true if this section is a subpage under any umbrella.
     pub fn is_subpage(&self) -> bool {
         self.is_ai_subpage() || self.is_code_subpage() || self.is_cloud_platform_subpage()
@@ -1286,11 +1317,17 @@ impl SettingsView {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("Search", ctx);
+            editor.set_placeholder_text(t(ctx, "common-search"), ctx);
             editor
         });
 
         ctx.subscribe_to_view(&search_editor, Self::handle_search_editor_event);
+        ctx.subscribe_to_model(&LanguageSettings::handle(ctx), |me, _, _, ctx| {
+            me.search_editor.update(ctx, |editor, ctx| {
+                editor.set_placeholder_text(t(ctx, "common-search"), ctx);
+            });
+            ctx.notify();
+        });
 
         let context_menu = ctx.add_typed_action_view(|_| {
             Menu::new()
@@ -1333,19 +1370,19 @@ impl SettingsView {
         let mut nav_items = vec![
             SettingsNavItem::Page(SettingsSection::Account),
             SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Agents",
+                "settings-section-agents",
                 SettingsSection::ai_subpages().to_vec(),
             )),
             SettingsNavItem::Page(SettingsSection::BillingAndUsage),
             SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Code",
+                "settings-section-code",
                 vec![
                     SettingsSection::CodeIndexing,
                     SettingsSection::EditorAndCodeReview,
                 ],
             )),
             SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Cloud platform",
+                "settings-section-cloud-platform",
                 vec![
                     SettingsSection::CloudEnvironments,
                     SettingsSection::OzCloudAPIKeys,
@@ -2399,15 +2436,27 @@ impl SettingsView {
         .finish()
     }
 
-    fn render_search_zero_state(&self, appearance: &Appearance) -> Box<dyn Element> {
+    /// Renders the empty state shown when settings search has no matches.
+    ///
+    /// # Parameters
+    /// - `appearance`: Current visual theme and typography.
+    /// - `app`: Application context used to resolve localized text.
+    ///
+    /// # Returns
+    /// Empty-state element for the settings search results.
+    fn render_search_zero_state(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let theme = appearance.theme();
         Container::new(
             Align::new(
                 Flex::column()
-                .with_cross_axis_alignment(CrossAxisAlignment::Center)
+                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
                     .with_children([
                         Text::new(
-                            "No settings match your search.",
+                            t(app, "settings-search-no-results-title"),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -2415,7 +2464,7 @@ impl SettingsView {
                         .with_color(theme.sub_text_color(theme.background()).into_solid())
                         .finish(),
                         Text::new(
-                            "You may want to try using different keywords or checking for any possible typos.",
+                            t(app, "settings-search-no-results-description"),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -2426,7 +2475,7 @@ impl SettingsView {
             )
             .finish(),
         )
-            .with_uniform_margin(16.)
+        .with_uniform_margin(16.)
         .with_corner_radius(CornerRadius::with_all(Radius::Pixels(4.)))
         .with_background(internal_colors::fg_overlay_1(appearance.theme()))
         .finish()
@@ -2450,7 +2499,7 @@ impl View for SettingsView {
         // (e.g. Oz -> AI, AgentMCPServers -> MCPServers).
         let content_page_section = self.current_settings_page.parent_page_section();
         let (page, current_page_handle) = if settings_pages.is_empty() {
-            (self.render_search_zero_state(appearance), None)
+            (self.render_search_zero_state(appearance, app), None)
         } else {
             match settings_pages
                 .iter()
@@ -2478,7 +2527,7 @@ impl View for SettingsView {
                     {
                         let page_active = section == self.current_settings_page;
                         buttons.add_child(
-                            page.render_page_button(appearance, *match_data, page_active)
+                            page.render_page_button(app, appearance, *match_data, page_active)
                                 .on_click(move |ctx, _, _| {
                                     ctx.dispatch_typed_action(SettingsAction::SelectAndRefresh(
                                         section,
@@ -2511,7 +2560,7 @@ impl View for SettingsView {
                     // across the full clickable area, not just the text.
                     buttons.add_child(
                         umbrella
-                            .render_umbrella_row(appearance)
+                            .render_umbrella_row(app, appearance)
                             .on_click(move |ctx, _, _| {
                                 ctx.dispatch_typed_action(SettingsAction::ToggleUmbrella(
                                     nav_index,
@@ -2542,9 +2591,9 @@ impl View for SettingsView {
                             }
 
                             let is_active = subpage_section == self.current_settings_page;
-                            if let Some(hoverable) = umbrella
-                                .render_subpage_button(sub_idx, appearance, match_data, is_active)
-                            {
+                            if let Some(hoverable) = umbrella.render_subpage_button(
+                                sub_idx, app, appearance, match_data, is_active,
+                            ) {
                                 buttons.add_child(
                                     hoverable
                                         .on_click(move |ctx, _, _| {
@@ -2571,6 +2620,7 @@ impl View for SettingsView {
         );
         let footer = render_footer(
             footer_kind,
+            app,
             appearance,
             self.settings_file_error.as_ref(),
             AISettings::as_ref(app).is_any_ai_enabled(app),
@@ -2832,9 +2882,9 @@ impl BackingView for SettingsView {
     fn render_header_content(
         &self,
         _ctx: &view::HeaderRenderContext<'_>,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> view::HeaderContent {
-        view::HeaderContent::simple("Settings")
+        view::HeaderContent::simple(t(app, "settings-title"))
     }
 
     fn set_focus_handle(&mut self, focus_handle: PaneFocusHandle, _ctx: &mut ViewContext<Self>) {

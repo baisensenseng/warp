@@ -57,6 +57,7 @@ use crate::drive::cloud_action_confirmation_dialog::{
 use crate::editor::{
     EditorView, Event as EditorEvent, InteractionState, SingleLineEditorOptions, TextOptions,
 };
+use crate::localization::t;
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::network::NetworkStatus;
@@ -3980,10 +3981,15 @@ impl TeamsWidget {
         let mut page = Flex::column();
 
         // Title, subtitle, and description
-        page.add_child(render_sub_header(appearance, "Teams".to_string(), None));
-        page.add_child(
-            self.render_sub_header_with_subtext_color(appearance, "Create a team".to_string()),
-        );
+        page.add_child(render_sub_header(
+            appearance,
+            t(app, "settings-section-teams"),
+            None,
+        ));
+        page.add_child(self.render_sub_header_with_subtext_color(
+            appearance,
+            t(app, "settings-teams-create-team"),
+        ));
         page.add_child(
             Container::new(
                 self.render_description(CREATE_TEAM_DESCRIPTION.to_string(), appearance),

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use warp_core::ui::theme::color::internal_colors;
+use warp_i18n::translate_ui_literal;
 use warpui::elements::{
     Align, Border, ClippedScrollStateHandle, ClippedScrollable, ConstrainedBox, Container,
     CornerRadius, CrossAxisAlignment, DispatchEventResult, Empty, EventHandler, Fill, Flex,
@@ -28,6 +29,7 @@ use crate::editor::{
     TextOptions,
 };
 use crate::keyboard::{write_custom_keybinding, UserDefinedKeybinding};
+use crate::localization::t;
 use crate::search_bar::SearchBar;
 use crate::settings::CloudPreferencesSettings;
 use crate::util::bindings::{
@@ -278,12 +280,15 @@ impl KeybindingRow {
                 keyshortcut.build().finish()
             }
         };
+        let description = translate_ui_literal(
+            binding
+                .description
+                .in_context(DescriptionContext::Default)
+                .to_owned(),
+        )
+        .into_owned();
         let element = render_columns(
-            render_text(
-                binding.description.in_context(DescriptionContext::Default),
-                None,
-                appearance,
-            ),
+            render_text(&description, None, appearance),
             keystroke,
             0.7,
             background,
@@ -1105,7 +1110,7 @@ impl SettingsWidget for KeybindingsWidget {
         {
             Some(LocalOnlyIconState::Visible {
                 mouse_state: self.local_only_icon_mouse_state.clone(),
-                custom_tooltip: Some("Keyboard shortcuts are not synced to the cloud".to_string()),
+                custom_tooltip: Some(t(app, "settings-keybindings-not-synced")),
             })
         } else {
             None
@@ -1113,7 +1118,7 @@ impl SettingsWidget for KeybindingsWidget {
 
         let subheader = render_sub_header(
             appearance,
-            "Configure keyboard shortcuts",
+            t(app, "settings-keybindings-configure-shortcuts"),
             local_only_icon_state,
         );
         let description = self.render_description(view.bindings.as_ref(), appearance);

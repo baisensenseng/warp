@@ -124,6 +124,7 @@ pub mod input_suggestions;
 pub mod integration_testing;
 pub mod keyboard;
 pub mod launch_configs;
+mod localization;
 pub mod pane_group;
 pub mod resource_center;
 pub mod root_view;
@@ -157,6 +158,7 @@ use code::editor_management::CodeManager;
 use code::opened_files::OpenedFilesModel;
 use code_review::git_repo_model::GitRepoModels;
 use code_review::GlobalCodeReviewModel;
+use localization::Localization;
 use quit_warning::UnsavedStateSummary;
 #[cfg(feature = "local_fs")]
 use repo_metadata::{
@@ -1281,6 +1283,7 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_ctx| SettingsManager::default());
 
     let user_defaults_on_startup = settings::init(startup_toml_parse_error, ctx);
+    ctx.add_singleton_model(Localization::new);
     timer.mark_interval_end("READ_USER_DEFAULTS_AND_INITIALIZE_SETTINGS");
 
     if FeatureFlag::UIZoom.is_enabled() {

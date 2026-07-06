@@ -79,6 +79,7 @@ use warp_core::ui::theme::{AnsiColors, Fill};
 use warp_core::ui::Icon;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warp_editor::editor::NavigationKey;
+use warp_i18n::translate_ui_literal;
 use warp_server_client::auth::AuthEvent;
 use warp_util::path::{user_friendly_path, LineAndColumnArg};
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -277,6 +278,7 @@ use crate::env_vars::CloudEnvVarCollection;
 use crate::experiments::{BlockOnboarding, Experiment};
 use crate::launch_configs::launch_config::WindowTemplate;
 use crate::launch_configs::save_modal::{LaunchConfigModalEvent, LaunchConfigSaveModal};
+use crate::localization::t;
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuSelectionSource};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::network::{NetworkStatus, NetworkStatusEvent};
@@ -9561,7 +9563,7 @@ impl Workspace {
         }
 
         items.extend([
-            MenuItemFields::new("What's new")
+            MenuItemFields::new(translate_ui_literal("What's new").into_owned())
                 .with_on_select_action(WorkspaceAction::ViewLatestChangelog)
                 .into_item(),
             MenuItemFields::new("Settings")
@@ -9571,23 +9573,23 @@ impl Workspace {
                 .with_on_select_action(WorkspaceAction::ToggleKeybindingsPage)
                 .into_item(),
             MenuItem::Separator,
-            MenuItemFields::new("Documentation")
+            MenuItemFields::new(translate_ui_literal("Documentation").into_owned())
                 .with_on_select_action(WorkspaceAction::ViewUserDocs)
                 .into_item(),
-            MenuItemFields::new("Feedback")
+            MenuItemFields::new(translate_ui_literal("Feedback").into_owned())
                 .with_on_select_action(WorkspaceAction::SendFeedback)
                 .into_item(),
         ]);
 
         #[cfg(not(target_family = "wasm"))]
         items.push(
-            MenuItemFields::new("View Warp logs")
+            MenuItemFields::new(translate_ui_literal("View Warp logs").into_owned())
                 .with_on_select_action(WorkspaceAction::ViewLogs)
                 .into_item(),
         );
 
         items.extend([
-            MenuItemFields::new("Slack")
+            MenuItemFields::new(translate_ui_literal("Slack").into_owned())
                 .with_on_select_action(WorkspaceAction::JoinSlack)
                 .into_item(),
             MenuItem::Separator,
@@ -9624,7 +9626,7 @@ impl Workspace {
         }
 
         items.push(
-            MenuItemFields::new("Invite a friend")
+            MenuItemFields::new(translate_ui_literal("Invite a friend").into_owned())
                 .with_on_select_action(WorkspaceAction::ShowReferralSettingsPage)
                 .into_item(),
         );
@@ -20236,7 +20238,7 @@ impl Workspace {
             if vertical_tabs_active {
                 (
                     self.vertical_tabs_panel_open,
-                    "Tabs panel",
+                    translate_ui_literal("Tabs panel").into_owned(),
                     WorkspaceAction::ToggleVerticalTabsPanel,
                     "workspace:toggle_vertical_tabs_panel",
                     "workspace:toggle_vertical_tabs_panel",
@@ -20254,8 +20256,9 @@ impl Workspace {
                         ToolPanelView::WarpDrive => "Warp Drive",
                         ToolPanelView::ConversationListView => "Agent conversations",
                     }
+                    .to_string()
                 } else {
-                    "Tools panel"
+                    "Tools panel".to_string()
                 };
                 (
                     self.active_tab_pane_group().as_ref(ctx).left_panel_open,
@@ -20466,7 +20469,7 @@ impl Workspace {
             button
                 .with_tooltip(self.render_tab_bar_icon_button_tooltip(
                     appearance,
-                    "Code review panel".to_string(),
+                    translate_ui_literal("Code review panel").into_owned(),
                     keybinding_name_to_display_string("workspace:toggle_right_panel", ctx),
                 ))
                 .build()
@@ -22002,14 +22005,14 @@ impl Workspace {
             return None;
         }
         let error = self.settings_file_error.as_ref()?;
-        let (heading, description) = error.heading_and_description();
+        let (heading, description) = error.heading_and_description_localized(app);
         let secondary_button =
             AISettings::as_ref(app)
                 .is_any_ai_enabled(app)
                 .then(|| WorkspaceBannerButtonDetails {
-                    text: "Fix with Oz".to_owned(),
+                    text: t(app, "settings-file-fix-with-oz"),
                     action: WorkspaceAction::FixSettingsWithOz {
-                        error_description: error.to_string(),
+                        error_description: error.localized_message(app),
                     },
                     variant: BannerButtonVariant::Naked,
                     icon: Some(Icon::Oz),
@@ -22022,7 +22025,7 @@ impl Workspace {
             description,
             secondary_button,
             button: Some(WorkspaceBannerButtonDetails {
-                text: "Open file".to_owned(),
+                text: t(app, "settings-file-open-file"),
                 action: WorkspaceAction::OpenSettingsFile,
                 variant: BannerButtonVariant::Outlined,
                 icon: None,
