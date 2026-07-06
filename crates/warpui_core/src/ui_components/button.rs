@@ -52,7 +52,7 @@ impl TextAndIcon {
             alignment,
             flex_size,
             flex_spacing,
-            text: text.into(),
+            text: translate_ui_literal(text),
             icon,
             padding: 0.,
             icon_size,

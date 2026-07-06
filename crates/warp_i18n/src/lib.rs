@@ -309,6 +309,18 @@ fn translate_dynamic_ui_literal(text: &str, language: Language) -> Option<String
 /// # Returns
 /// Simplified Chinese text when a known generated UI pattern matches.
 fn translate_dynamic_ui_literal_zh_cn(text: &str) -> Option<String> {
+    if let Some(row) = translate_agent_management_metadata_row_zh_cn(text) {
+        return Some(row);
+    }
+
+    if let Some(prefixed_value) = translate_agent_management_prefixed_value_zh_cn(text) {
+        return Some(prefixed_value);
+    }
+
+    if let Some(title) = translate_agent_management_title_zh_cn(text) {
+        return Some(title);
+    }
+
     if let Some((name, tab)) = text.split_once(" · Tab ") {
         return Some(format!("{name} · 标签页 {tab}"));
     }
@@ -530,6 +542,139 @@ fn translate_dynamic_ui_literal_zh_cn(text: &str) -> Option<String> {
             format!("调试信息：{value}")
         })
     })
+}
+
+/// Translates Agent Management metadata rows split by bullet separators.
+///
+/// # Parameters
+/// - `text`: Runtime metadata row such as `Source: Warp App • Harness: Warp`.
+///
+/// # Returns
+/// Simplified Chinese metadata row when at least one segment matches.
+fn translate_agent_management_metadata_row_zh_cn(text: &str) -> Option<String> {
+    if !text.contains(" • ") {
+        return None;
+    }
+
+    let mut changed = false;
+    let translated = text
+        .split(" • ")
+        .map(|part| {
+            if let Some(translated) = translate_agent_management_prefixed_value_zh_cn(part) {
+                changed = true;
+                translated
+            } else {
+                part.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" • ");
+
+    changed.then_some(translated)
+}
+
+/// Translates Agent Management labels that are composed as `label: value`.
+///
+/// # Parameters
+/// - `text`: Runtime label/value text such as `Status: All` or `Credits used: 10 credits`.
+///
+/// # Returns
+/// Simplified Chinese label/value text when the label is known.
+fn translate_agent_management_prefixed_value_zh_cn(text: &str) -> Option<String> {
+    [
+        ("Status: ", "状态"),
+        ("Source: ", "来源"),
+        ("Created on: ", "创建时间"),
+        ("Has artifact: ", "有产物"),
+        ("Harness: ", "运行框架"),
+        ("Environment: ", "环境"),
+        ("Created by: ", "创建者"),
+        ("Credits used: ", "已用点数"),
+        ("Run time: ", "运行时长"),
+        ("Agent: ", "Agent"),
+        ("Executor: ", "执行者"),
+    ]
+    .into_iter()
+    .find_map(|(prefix, label)| {
+        text.strip_prefix(prefix)
+            .map(|value| format!("{label}：{}", translate_agent_management_value_zh_cn(value)))
+    })
+}
+
+/// Translates known Agent Management selected values while preserving product names.
+///
+/// # Parameters
+/// - `value`: Runtime selected value or metadata value.
+///
+/// # Returns
+/// Simplified Chinese value, falling back to the original value for names and IDs.
+fn translate_agent_management_value_zh_cn(value: &str) -> Cow<'_, str> {
+    match value {
+        "All" => Cow::Borrowed("全部"),
+        "None" => Cow::Borrowed("无"),
+        "Working" => Cow::Borrowed("进行中"),
+        "Done" => Cow::Borrowed("已完成"),
+        "Failed" => Cow::Borrowed("失败"),
+        "Last 24 hours" => Cow::Borrowed("过去 24 小时"),
+        "Past 3 days" => Cow::Borrowed("过去 3 天"),
+        "Last week" => Cow::Borrowed("过去一周"),
+        "Pull Request" => Cow::Borrowed("拉取请求"),
+        "Plan" => Cow::Borrowed("计划"),
+        "Screenshot" => Cow::Borrowed("截图"),
+        "File" => Cow::Borrowed("文件"),
+        "Warp App" => Cow::Borrowed("Warp 应用"),
+        "Cloud Mode" => Cow::Borrowed("云模式"),
+        "Agent Webhook" => Cow::Borrowed("Agent Webhook"),
+        "CLI" => Cow::Borrowed("CLI"),
+        "Linear" => Cow::Borrowed("Linear"),
+        "Slack" => Cow::Borrowed("Slack"),
+        "Scheduled Agent" => Cow::Borrowed("定时 Agent"),
+        "Interactive" => Cow::Borrowed("交互式"),
+        _ => translate_agent_management_credit_value_zh_cn(value)
+            .map(Cow::Owned)
+            .unwrap_or_else(|| Cow::Borrowed(value)),
+    }
+}
+
+/// Translates Agent Management credit values while preserving the numeric part.
+///
+/// # Parameters
+/// - `value`: Runtime value such as `10 credits` or `1 credit`.
+///
+/// # Returns
+/// Simplified Chinese credit value when the suffix is recognized.
+fn translate_agent_management_credit_value_zh_cn(value: &str) -> Option<String> {
+    value
+        .strip_suffix(" credits")
+        .or_else(|| value.strip_suffix(" credit"))
+        .map(|amount| format!("{amount} 点数"))
+}
+
+/// Translates common generated Agent Management task titles.
+///
+/// # Parameters
+/// - `text`: Runtime task title displayed in the Agent Management list.
+///
+/// # Returns
+/// Simplified Chinese title for known generated title patterns.
+fn translate_agent_management_title_zh_cn(text: &str) -> Option<String> {
+    match text {
+        "Identify Project Directory Path" => return Some("识别项目目录路径".to_owned()),
+        _ => {}
+    }
+
+    if let Some(tool) = text.strip_prefix("Run Development Server with ") {
+        return Some(format!("使用 {tool} 运行开发服务器"));
+    }
+
+    if let Some(project) = text
+        .strip_prefix("Change Directory To ")
+        .and_then(|text| text.strip_suffix(" Project"))
+    {
+        return Some(format!("切换目录到 {project} 项目"));
+    }
+
+    None
 }
 
 /// Translates English relative time labels to Simplified Chinese.
@@ -2684,6 +2829,29 @@ fn ui_literal_key(text: &str) -> Option<&'static str> {
         "Steer the running agent, or backspace to exit" => Some("ui-literal-2091"),
         "Queue a follow up for the running agent, or backspace to exit" => Some("ui-literal-2092"),
         "Ask a follow up, or backspace to exit" => Some("ui-literal-2093"),
+        "Agent management panel" => Some("ui-literal-2094"),
+        "Runs" => Some("ui-literal-2095"),
+        "Status" => Some("ui-literal-2096"),
+        "Source" => Some("ui-literal-2097"),
+        "Created on" => Some("ui-literal-2098"),
+        "Has artifact" => Some("ui-literal-2099"),
+        "Harness" => Some("ui-literal-2100"),
+        "Environment" => Some("ui-literal-2101"),
+        "Created by" => Some("ui-literal-2102"),
+        "Working" => Some("ui-literal-2103"),
+        "Failed" => Some("ui-literal-2104"),
+        "Last 24 hours" => Some("ui-literal-2105"),
+        "Past 3 days" => Some("ui-literal-2106"),
+        "Last week" => Some("ui-literal-2107"),
+        "Pull Request" => Some("ui-literal-2108"),
+        "Screenshot" => Some("ui-literal-2109"),
+        "File" => Some("ui-literal-2110"),
+        "None" => Some("ui-literal-2111"),
+        "Session expired" => Some("ui-literal-2112"),
+        "No session available" => Some("ui-literal-2113"),
+        "Sessions expire after one week and cannot be opened." => Some("ui-literal-2114"),
+        "Executor" => Some("ui-literal-2115"),
+        "Run time" => Some("ui-literal-2116"),
         _ => None,
     }
 }
