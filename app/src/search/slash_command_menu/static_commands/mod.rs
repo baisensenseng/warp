@@ -2,11 +2,10 @@ pub mod bindings;
 pub mod commands;
 
 use bitflags::bitflags;
+pub use commands::SlashCommandId;
 use warpui::AppContext;
 
 use crate::localization::t;
-
-pub use commands::SlashCommandId;
 
 bitflags! {
     /// Specifies the requirements for a slash command to be available.

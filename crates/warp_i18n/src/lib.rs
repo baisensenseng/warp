@@ -658,9 +658,8 @@ fn translate_agent_management_credit_value_zh_cn(value: &str) -> Option<String> 
 /// # Returns
 /// Simplified Chinese title for known generated title patterns.
 fn translate_agent_management_title_zh_cn(text: &str) -> Option<String> {
-    match text {
-        "Identify Project Directory Path" => return Some("识别项目目录路径".to_owned()),
-        _ => {}
+    if text == "Identify Project Directory Path" {
+        return Some("识别项目目录路径".to_owned());
     }
 
     if let Some(tool) = text.strip_prefix("Run Development Server with ") {

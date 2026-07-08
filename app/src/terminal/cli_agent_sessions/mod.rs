@@ -2,6 +2,7 @@ pub mod event;
 pub mod listener;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod plugin_manager;
+pub(crate) mod restore;
 
 use std::collections::{HashMap, HashSet};
 
@@ -9,6 +10,7 @@ use event::{CLIAgentEvent, CLIAgentEventSource, CLIAgentEventType};
 use warpui::{Entity, EntityId, ModelContext, ModelHandle, SingletonEntity};
 
 use self::listener::CLIAgentSessionListener;
+use self::restore::CLIAgentRestoreData;
 use super::CLIAgent;
 use crate::ai::blocklist::InputConfig;
 
@@ -324,6 +326,19 @@ impl CLIAgentSessionsModel {
 
     pub fn session(&self, terminal_view_id: EntityId) -> Option<&CLIAgentSession> {
         self.sessions.get(&terminal_view_id)
+    }
+
+    /// Returns persistence data for restoring a CLI agent session after app restart.
+    ///
+    /// # Parameters
+    /// - `terminal_view_id`: Terminal view whose active CLI agent session should be captured.
+    ///
+    /// # Returns
+    /// `Some(CLIAgentRestoreData)` when the terminal has a local restorable Claude or Codex session; otherwise `None`.
+    pub fn restore_data(&self, terminal_view_id: EntityId) -> Option<CLIAgentRestoreData> {
+        self.sessions
+            .get(&terminal_view_id)
+            .and_then(CLIAgentRestoreData::from_session)
     }
 
     /// Returns `true` if the rich input editor is currently open for this terminal.

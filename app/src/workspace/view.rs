@@ -3691,6 +3691,7 @@ impl Workspace {
         ) && self.workspace_contains_terminal_view(event.terminal_view_id(), ctx)
         {
             ctx.notify();
+            ctx.dispatch_global_action("workspace:save_app", ());
         }
     }
 

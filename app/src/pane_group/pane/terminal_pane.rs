@@ -516,6 +516,7 @@ impl PaneContent for TerminalPane {
                 active_profile_id: None,
                 conversation_ids_to_restore: vec![],
                 active_conversation_id: None,
+                cli_agent_restore_data: None,
             })
         } else if let Some(task_id) = view
             .ambient_agent_view_model()
@@ -546,6 +547,7 @@ impl PaneContent for TerminalPane {
                     active_profile_id: None,
                     conversation_ids_to_restore: vec![],
                     active_conversation_id: None,
+                    cli_agent_restore_data: None,
                 })
             }
         } else {
@@ -576,6 +578,9 @@ impl PaneContent for TerminalPane {
                         .active_conversation_id()
                 });
 
+            let cli_agent_restore_data =
+                CLIAgentSessionsModel::as_ref(app).restore_data(self.terminal_view(app).id());
+
             LeafContents::Terminal(TerminalPaneSnapshot {
                 uuid: self.uuid.clone(),
                 cwd: view.pwd_if_local(app),
@@ -587,6 +592,7 @@ impl PaneContent for TerminalPane {
                 active_profile_id,
                 conversation_ids_to_restore,
                 active_conversation_id,
+                cli_agent_restore_data,
             })
         }
     }

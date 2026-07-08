@@ -18,6 +18,7 @@ use crate::server::ids::SyncId;
 use crate::settings_view::environments_page::EnvironmentsPage;
 use crate::settings_view::SettingsSection;
 use crate::tab::SelectedTabColor;
+use crate::terminal::cli_agent_sessions::restore::CLIAgentRestoreData;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::workspace::tab_group::TabGroupId;
@@ -215,6 +216,7 @@ pub struct TerminalPaneSnapshot {
     /// The active conversation ID if the agent view was open in fullscreen mode.
     /// When `Some`, the agent view should be restored to fullscreen for this conversation.
     pub active_conversation_id: Option<AIConversationId>,
+    pub cli_agent_restore_data: Option<CLIAgentRestoreData>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

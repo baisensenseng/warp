@@ -1626,6 +1626,10 @@ impl PaneGroup {
                     .cwd
                     .map(PathBuf::from)
                     .filter(|path| path.is_dir());
+                let cli_agent_restore_command = terminal_snapshot
+                    .cli_agent_restore_data
+                    .as_ref()
+                    .and_then(|restore_data| restore_data.command());
 
                 // Filter conversation IDs to only include those that have task messages
                 // and are not entirely passive (ignored suggestions).
@@ -1683,6 +1687,11 @@ impl PaneGroup {
                 );
 
                 let terminal_view_id = terminal_view.id();
+                if let Some(command) = cli_agent_restore_command {
+                    terminal_view.update(ctx, |terminal, ctx| {
+                        terminal.set_pending_command_queue(vec![command], ctx);
+                    });
+                }
 
                 let pane_data = TerminalPane::new(
                     uuid.0,
@@ -2156,6 +2165,7 @@ impl PaneGroup {
                             active_profile_id: None,
                             conversation_ids_to_restore: Vec::new(),
                             active_conversation_id: None,
+                            cli_agent_restore_data: None,
                         })
                     }
                 };
